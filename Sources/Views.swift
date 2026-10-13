@@ -72,7 +72,7 @@ final class DayTimelineView: NSView {
         setAccessibilityElement(true)
         setAccessibilityRole(.image)
         setAccessibilityLabel("Linha do tempo do dia. \(duration(online)) com internet e \(duration(offline)) sem internet. Os demais períodos não foram observados.")
-        toolTip = "Passe o cursor para consultar cada intervalo. Os dados são agregados em aproximadamente cinco minutos."
+        toolTip = "Passe o cursor para consultar cada intervalo. Os dados são agregados em aproximadamente cinco minutos. Interrupções curtas têm marcador ampliado para ficarem visíveis."
         needsDisplay = true
     }
     override func updateTrackingAreas() {
@@ -107,15 +107,21 @@ final class DayTimelineView: NSView {
                 for (index, bucket) in buckets.enumerated() {
                     let x = CGFloat(index) * width
                     let onlineWidth = width * CGFloat(min(1, bucket.online / seconds))
-                    let offlineWidth = width * CGFloat(min(1 - Double(onlineWidth / width), bucket.offline / seconds))
                     if onlineWidth > 0 {
                         NSColor.systemGreen.setFill()
                         NSRect(x: x, y: bar.minY, width: onlineWidth, height: bar.height).fill()
                     }
-                    if offlineWidth > 0 {
-                        NSColor.systemRed.setFill()
-                        NSRect(x: x + onlineWidth, y: bar.minY, width: offlineWidth, height: bar.height).fill()
-                    }
+                }
+                // Desenhar por último impede que o intervalo seguinte cubra um marcador ampliado.
+                for (index, bucket) in buckets.enumerated() where bucket.offline > 0 {
+                    let x = CGFloat(index) * width
+                    let onlineWidth = width * CGFloat(min(1, bucket.online / seconds))
+                    let offlineWidth = width * CGFloat(max(0, min(1 - Double(onlineWidth / width), bucket.offline / seconds)))
+                    let markerWidth = min(bar.width, max(3, offlineWidth))
+                    let center = x + onlineWidth + offlineWidth / 2
+                    let markerX = min(bar.maxX - markerWidth, max(bar.minX, center - markerWidth / 2))
+                    NSColor.systemRed.setFill()
+                    NSRect(x: markerX, y: bar.minY, width: markerWidth, height: bar.height).fill()
                 }
             }
             NSGraphicsContext.restoreGraphicsState()

@@ -465,7 +465,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         stateIcon?.image = NSImage(systemSymbolName: stateSymbol, accessibilityDescription: statusText)
         stateIcon?.contentTintColor = stateColor
         timelineView?.update(store.dayTimeline(from: start, to: end), from: start, to: end)
-        timelineCaption?.stringValue = "Horário local. Intervalos de aproximadamente 5 min. Sem observação: \(duration(unknown))."
+        timelineCaption?.stringValue = "Horário local. Intervalos de aproximadamente 5 min. Quedas curtas têm marcador ampliado. Sem observação: \(duration(unknown))."
         for (label, value) in zip(cards, values) { label.stringValue = value }
         currentLabel?.stringValue = statusText
         let received = ByteCountFormatter.string(fromByteCount: Int64(summary.received), countStyle: .decimal)

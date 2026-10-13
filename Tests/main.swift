@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 
 var checks = 0
 func check(_ condition: @autoclosure () -> Bool, _ name: String) {
@@ -187,4 +188,30 @@ do { try recovery.export(from: 0, to: 300, to: protectedMain) }
 catch { exclusiveFailed = true }
 let symlinkDestination = try FileManager.default.destinationOfSymbolicLink(atPath: protectedSidecar.path)
 check(exclusiveFailed && symlinkDestination == missingDestination && !FileManager.default.fileExists(atPath: protectedMain.path), "criação exclusiva protege destino e desfaz publicação parcial")
+// A queda de 13 segundos deve continuar visível após desenhar os intervalos seguintes.
+for appearance in [NSAppearance.Name.aqua, .darkAqua] {
+    for width in [360, 860] {
+        for outageIndex in [0, 19, 287] {
+            var day = Array(repeating: TimelineBucket(online: 300), count: 288)
+            day[outageIndex] = TimelineBucket(online: 287, offline: 13)
+            let view = DayTimelineView(frame: NSRect(x: 0, y: 0, width: width, height: 64))
+            view.appearance = NSAppearance(named: appearance)
+            view.update(day, from: 0, to: 86400)
+            let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: width, pixelsHigh: 64, bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
+            NSGraphicsContext.saveGraphicsState()
+            NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)
+            view.draw(view.bounds)
+            NSGraphicsContext.restoreGraphicsState()
+            let redColumns = (0..<width).filter { x in
+                (0..<64).contains { y in
+                    guard let color = bitmap.colorAt(x: x, y: y)?.usingColorSpace(.deviceRGB) else { return false }
+                    return color.alphaComponent > 0.9 && color.redComponent > 0.7 && color.greenComponent < 0.5 && color.blueComponent < 0.5
+                }
+            }
+            check(redColumns.count >= 3, "queda de 13s visível em \(appearance.rawValue), largura \(width), intervalo \(outageIndex)")
+            let expectedX = Double(outageIndex + 1) * Double(width) / 288
+            check(redColumns.allSatisfy { abs(Double($0) - expectedX) <= 4 }, "marcador permanece no intervalo da queda")
+        }
+    }
+}
 print("\(checks) verificações concluídas.")
