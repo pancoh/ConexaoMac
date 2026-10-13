@@ -32,7 +32,7 @@
 
 Requisitos: **Mac com Apple Silicon (M1 ou posterior) e macOS 13 ou superior**. O pacote atual não é compatível com Macs Intel.
 
-1. Baixe e descompacte `ConexaoMac.zip`.
+1. Clique em **Baixar para Mac**. Se o download já aparecer como `Conexão.app`, ele está pronto para instalar. Se aparecer como `ConexaoMac.zip`, abra o arquivo para descompactar.
 2. Arraste `Conexão.app` para **Aplicativos**.
 3. Abra o aplicativo. O ícone aparece na barra de menus.
 
@@ -43,7 +43,7 @@ O aplicativo tem assinatura local e ainda não foi notarizado pela Apple. Se hou
 A atualização é manual. O aplicativo não baixa nem instala versões novas automaticamente.
 
 1. Consulte **Sobre** no resumo compacto para verificar sua versão.
-2. Abra a [página da versão mais recente](https://github.com/pancoh/ConexaoMac/releases/latest) e baixe o ZIP.
+2. [Baixe a versão mais recente](https://github.com/pancoh/ConexaoMac/releases/latest/download/ConexaoMac.zip). Se receber um ZIP, abra o arquivo para obter `Conexão.app`.
 3. Use **Opções → Encerrar Conexão** antes de substituir o aplicativo.
 4. Arraste a nova cópia para **Aplicativos**, confirme a substituição e abra novamente.
 
