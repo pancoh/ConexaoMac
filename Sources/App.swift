@@ -52,7 +52,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         } catch { showError(error.localizedDescription); NSApp.terminate(nil); return }
         monitor = Monitor(store: store)
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        statusItem.button?.image = NSImage(systemSymbolName: "network", accessibilityDescription: "Conexão")
+        statusItem.button?.image = MenuBarIcon.connected
+        statusItem.button?.setAccessibilityLabel("Conexão")
         statusItem.button?.target = self
         statusItem.button?.action = #selector(statusPressed)
         statusItem.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
@@ -134,7 +135,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
     }
 
     private func updateStatus() {
-        statusItem.button?.image = NSImage(systemSymbolName: monitor.paused ? "pause.circle" : monitor.state == .online ? "network" : "network.slash", accessibilityDescription: statusText)
+        statusItem.button?.image = monitor.paused ? MenuBarIcon.paused : monitor.state == .online ? MenuBarIcon.connected : MenuBarIcon.disconnected
+        statusItem.button?.setAccessibilityLabel(statusText)
         statusItem.button?.toolTip = statusText
         if window?.isVisible == true { refreshPanel() }
         if popover?.isShown == true { refreshCompact() }
