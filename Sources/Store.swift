@@ -174,6 +174,12 @@ final class Store {
     func outages(from: Double, to: Double, now: Double) -> [[String]] {
         rows("SELECT start,MIN(COALESCE(end,?),?),interface,interrupted FROM outages WHERE start<? AND COALESCE(end,?)>? ORDER BY start DESC LIMIT 200", [now, to, to, now, from])
     }
+    func outageDetails(from: Double, to: Double, now: Double) -> [OutageDetail] {
+        rows("SELECT start,COALESCE(end,?),interface,end IS NULL,interrupted FROM outages WHERE start<? AND COALESCE(end,?)>? ORDER BY start LIMIT 7", [now, to, now, from]).compactMap { row in
+            guard let start = Double(row[0]), let end = Double(row[1]) else { return nil }
+            return OutageDetail(start: start, end: end, interface: row[2], ongoing: row[3] == "1", interrupted: row[4] == "1")
+        }
+    }
     func outageStats(from: Double, to: Double, now: Double) -> (Int, Double) {
         let row = rows("SELECT COUNT(CASE WHEN start>=? THEN 1 END),MAX(MAX(0,MIN(COALESCE(end,?),?)-MAX(start,?))) FROM outages WHERE start<? AND COALESCE(end,?)>?", [from, now, to, from, to, now, from]).first ?? ["0", "0"]
         return (Int(row[0]) ?? 0, Double(row[1]) ?? 0)

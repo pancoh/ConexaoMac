@@ -27,6 +27,14 @@ struct TimelineBucket {
     var offline = 0.0
 }
 
+struct OutageDetail {
+    var start: Double
+    var end: Double
+    var interface: String
+    var ongoing: Bool
+    var interrupted: Bool
+}
+
 struct Summary {
     var online = 0.0
     var offline = 0.0

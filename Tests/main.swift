@@ -214,4 +214,35 @@ for appearance in [NSAppearance.Name.aqua, .darkAqua] {
         }
     }
 }
+let tooltipStore = try Store(path: root.appendingPathComponent("tooltip.sqlite").path)
+tooltipStore.beginOutage(5966, "Wi-Fi|en0")
+tooltipStore.endOutage(5979, false)
+let detail = tooltipStore.outageDetails(from: 5700, to: 6000, now: 86400)
+check(detail.count == 1 && detail[0].start == 5966 && detail[0].end == 5979 && !detail[0].ongoing, "detalhe conserva horários e duração real da queda")
+let tooltipView = DayTimelineView(frame: NSRect(x: 0, y: 0, width: 860, height: 64))
+var tooltipDay = Array(repeating: TimelineBucket(online: 300), count: 288)
+tooltipDay[19] = TimelineBucket(online: 287, offline: 13)
+tooltipView.update(tooltipDay, from: 0, to: 86400)
+var detailQueries = 0
+tooltipView.outageDetails = { from, to in
+    detailQueries += 1
+    return tooltipStore.outageDetails(from: from, to: to, now: 86400)
+}
+let shortTooltip = tooltipView.tooltipText(at: NSPoint(x: 60.8, y: 44))
+check(shortTooltip.contains("Duração observada: 13s") && shortTooltip.contains("Conexão: Wi-Fi · en0") && shortTooltip.contains("Início:") && shortTooltip.contains("Fim:"), "área ampliada mostra dados da queda mesmo sobre o intervalo vizinho")
+check(tooltipView.view(tooltipView, stringForToolTip: 0, point: NSPoint(x: 60.8, y: 44), userData: nil) == shortTooltip, "tooltip nativo usa os detalhes do marcador")
+let normalTooltip = tooltipView.tooltipText(at: NSPoint(x: 100, y: 44))
+check(normalTooltip.contains("com internet") && detailQueries == 2, "faixa conectada mantém resumo sem consultar quedas")
+check(!tooltipView.tooltipText(at: NSPoint(x: 60.8, y: 12)).contains("Queda de conexão"), "rótulos de horário não ativam detalhe de queda")
+tooltipStore.beginOutage(5980, "Cabo|en5")
+let ongoing = tooltipStore.outageDetails(from: 5980, to: 6000, now: 5990)
+check(ongoing.count == 1 && ongoing[0].ongoing && ongoing[0].end == 5990, "queda em andamento usa horário atual")
+check(tooltipView.tooltipText(at: NSPoint(x: 60.8, y: 44)).contains("Em andamento"), "tooltip informa queda em andamento")
+tooltipStore.endOutage(5995, true)
+check(tooltipView.tooltipText(at: NSPoint(x: 60.8, y: 44)).contains("Observação encerrada"), "tooltip distingue encerramento da observação e retorno da internet")
+tooltipView.outageDetails = { from, to in historyStore.outageDetails(from: from, to: to, now: 300) }
+tooltipView.update([TimelineBucket(online: 290, offline: 10)], from: 0, to: 300)
+check(tooltipView.tooltipText(at: NSPoint(x: 850, y: 44)).contains("Há outras quedas"), "tooltip limita registros e informa quedas adicionais")
+tooltipView.setFrameSize(NSSize(width: 360, height: 64))
+check(tooltipView.tooltipText(at: NSPoint(x: 355, y: 44)).contains("Queda de conexão"), "detalhe acompanha redimensionamento da faixa")
 print("\(checks) verificações concluídas.")

@@ -51,11 +51,17 @@ final class SurfaceView: NSView {
     }
 }
 
-final class DayTimelineView: NSView {
+final class DayTimelineView: NSView, NSViewToolTipOwner {
     private var buckets: [TimelineBucket] = []
     private var start = 0.0
     private var end = 0.0
-    private var tracking: NSTrackingArea?
+    var outageDetails: (Double, Double) -> [OutageDetail] = { _, _ in [] }
+    private let detailFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "pt_BR")
+        formatter.dateFormat = "dd/MM HH:mm:ss"
+        return formatter
+    }()
     private let formatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "pt_BR")
@@ -72,24 +78,56 @@ final class DayTimelineView: NSView {
         setAccessibilityElement(true)
         setAccessibilityRole(.image)
         setAccessibilityLabel("Linha do tempo do dia. \(duration(online)) com internet e \(duration(offline)) sem internet. Os demais períodos não foram observados.")
-        toolTip = "Passe o cursor para consultar cada intervalo. Os dados são agregados em aproximadamente cinco minutos. Interrupções curtas têm marcador ampliado para ficarem visíveis."
+        updateTooltipRegion()
         needsDisplay = true
     }
-    override func updateTrackingAreas() {
-        if let tracking { removeTrackingArea(tracking) }
-        tracking = NSTrackingArea(rect: .zero, options: [.inVisibleRect, .activeInKeyWindow, .mouseMoved], owner: self, userInfo: nil)
-        addTrackingArea(tracking!)
-        super.updateTrackingAreas()
+    private func updateTooltipRegion() {
+        removeAllToolTips()
+        addToolTip(bounds, owner: self, userData: nil)
     }
-    override func mouseMoved(with event: NSEvent) {
-        guard !buckets.isEmpty, end > start, bounds.width > 0 else { return }
-        let x = convert(event.locationInWindow, from: nil).x
-        let index = min(buckets.count - 1, max(0, Int(x / bounds.width * CGFloat(buckets.count))))
+    override func setFrameSize(_ newSize: NSSize) {
+        super.setFrameSize(newSize)
+        updateTooltipRegion()
+    }
+    func view(_ view: NSView, stringForToolTip tag: NSView.ToolTipTag, point: NSPoint, userData data: UnsafeMutableRawPointer?) -> String {
+        tooltipText(at: point)
+    }
+    private func markerRect(for index: Int) -> NSRect {
+        let width = bounds.width / CGFloat(buckets.count)
+        let seconds = (end - start) / Double(buckets.count)
+        let bucket = buckets[index]
+        let onlineWidth = width * CGFloat(min(1, bucket.online / seconds))
+        let offlineWidth = width * CGFloat(max(0, min(1 - Double(onlineWidth / width), bucket.offline / seconds)))
+        let markerWidth = min(bounds.width, max(3, offlineWidth))
+        let center = CGFloat(index) * width + onlineWidth + offlineWidth / 2
+        let markerX = min(bounds.width - markerWidth, max(0, center - markerWidth / 2))
+        return NSRect(x: markerX, y: 30, width: markerWidth, height: 28)
+    }
+    func tooltipText(at point: NSPoint) -> String {
+        guard !buckets.isEmpty, end > start, bounds.width > 0 else { return "Sem observação" }
         let width = (end - start) / Double(buckets.count)
+        // A área consultável acompanha a largura ampliada do marcador vermelho.
+        let hits = buckets.indices.filter { buckets[$0].offline > 0 && markerRect(for: $0).contains(point) }
+        if let first = hits.first, let last = hits.last {
+            let details = outageDetails(start + Double(first) * width, start + Double(last + 1) * width)
+            if !details.isEmpty {
+                var text = details.prefix(6).map { outage in
+                    let begin = detailFormatter.string(from: Date(timeIntervalSince1970: outage.start))
+                    let finish = outage.ongoing ? "Em andamento" : detailFormatter.string(from: Date(timeIntervalSince1970: outage.end))
+                    let connection = outage.interface.replacingOccurrences(of: "|", with: " · ")
+                    let status = outage.interrupted ? "\nObservação encerrada antes de confirmar o retorno da internet." : ""
+                    return "Queda de conexão\nInício: \(begin)\nFim: \(finish)\nDuração observada: \(duration(outage.end - outage.start))\nConexão: \(connection)\(status)"
+                }.joined(separator: "\n\n")
+                if details.count > 6 { text += "\n\nHá outras quedas neste trecho. Consulte o histórico do dia." }
+                return text
+            }
+        }
+        let x = point.x
+        let index = min(buckets.count - 1, max(0, Int(x / bounds.width * CGFloat(buckets.count))))
         let bucket = buckets[index]
         let unknown = max(0, width - bucket.online - bucket.offline)
         let time = formatter.string(from: Date(timeIntervalSince1970: start + Double(index) * width))
-        toolTip = "\(time): \(duration(bucket.online)) com internet, \(duration(bucket.offline)) sem internet, \(duration(unknown)) sem observação."
+        return "\(time): \(duration(bucket.online)) com internet, \(duration(bucket.offline)) sem internet, \(duration(unknown)) sem observação."
     }
     override func draw(_ dirtyRect: NSRect) {
         guard end > start, bounds.width > 0 else { return }
@@ -114,14 +152,8 @@ final class DayTimelineView: NSView {
                 }
                 // Desenhar por último impede que o intervalo seguinte cubra um marcador ampliado.
                 for (index, bucket) in buckets.enumerated() where bucket.offline > 0 {
-                    let x = CGFloat(index) * width
-                    let onlineWidth = width * CGFloat(min(1, bucket.online / seconds))
-                    let offlineWidth = width * CGFloat(max(0, min(1 - Double(onlineWidth / width), bucket.offline / seconds)))
-                    let markerWidth = min(bar.width, max(3, offlineWidth))
-                    let center = x + onlineWidth + offlineWidth / 2
-                    let markerX = min(bar.maxX - markerWidth, max(bar.minX, center - markerWidth / 2))
                     NSColor.systemRed.setFill()
-                    NSRect(x: markerX, y: bar.minY, width: markerWidth, height: bar.height).fill()
+                    markerRect(for: index).fill()
                 }
             }
             NSGraphicsContext.restoreGraphicsState()

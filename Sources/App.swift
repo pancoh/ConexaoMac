@@ -315,6 +315,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMe
         }
 
         timelineView = DayTimelineView()
+        timelineView?.outageDetails = { [weak self] from, to in
+            self?.store.outageDetails(from: from, to: to, now: Date().timeIntervalSince1970) ?? []
+        }
         let timelineTitle = label("Conexão ao longo do dia", size: 14, weight: .semibold)
         func legend(_ text: String, symbol: String, color: NSColor) -> NSView {
             let icon = PanelUI.symbol(symbol, description: text, size: 11)
