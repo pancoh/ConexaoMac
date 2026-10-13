@@ -1,10 +1,34 @@
-# ConexaoMac
+<p align="center">
+  <img src="Assets/readme-icon.png" alt="Ícone do Conexão" width="112" height="112">
+</p>
 
-Aplicativo nativo para acompanhar a conexão de internet no Mac. Usa Swift, AppKit e SQLite local.
+<h1 align="center">Conexão</h1>
 
-## Download e instalação
+<p align="center">Monitoramento da internet no Mac, com histórico local e interface nativa.</p>
 
-[Baixar a versão mais recente](https://github.com/pancoh/ConexaoMac/releases/latest/download/ConexaoMac.zip) · [Ver todas as versões](https://github.com/pancoh/ConexaoMac/releases)
+<p align="center">
+  <img src="https://img.shields.io/badge/Swift-F05138?style=flat&amp;logo=swift&amp;logoColor=white" alt="Swift">
+  <img src="https://img.shields.io/badge/AppKit-263746?style=flat&amp;logo=apple&amp;logoColor=white" alt="AppKit">
+  <img src="https://img.shields.io/badge/SQLite-003B57?style=flat&amp;logo=sqlite&amp;logoColor=white" alt="SQLite">
+  <img src="https://img.shields.io/badge/macOS-13%2B-172B3A?style=flat&amp;logo=apple&amp;logoColor=white" alt="macOS 13 ou superior">
+</p>
+
+<p align="center">
+  <a href="https://github.com/pancoh/ConexaoMac/actions/workflows/release.yml"><img src="https://github.com/pancoh/ConexaoMac/actions/workflows/release.yml/badge.svg" alt="Status dos testes e publicação"></a>
+  <a href="https://github.com/pancoh/ConexaoMac/releases/latest"><img src="https://img.shields.io/github/v/release/pancoh/ConexaoMac?style=flat&amp;label=vers%C3%A3o&amp;color=167D8D" alt="Versão publicada"></a>
+</p>
+
+<p align="center">
+  <strong><a href="https://github.com/pancoh/ConexaoMac/releases/latest/download/ConexaoMac.zip">Baixar para Mac</a></strong>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/pancoh/ConexaoMac/releases">Todas as versões</a>
+  &nbsp;·&nbsp;
+  <a href="#como-atualizar">Como atualizar</a>
+</p>
+
+---
+
+## Instalação
 
 Requisitos: **Mac com Apple Silicon (M1 ou posterior) e macOS 13 ou superior**. O pacote atual não é compatível com Macs Intel.
 
@@ -29,12 +53,14 @@ Para receber avisos pelo GitHub, use **Watch → Custom → Releases** no reposi
 
 ## Recursos
 
-- Estado atual da internet e resumo compacto na barra de menus.
-- Histórico diário de disponibilidade, quedas, sessões, testes e eventos.
-- Linha do tempo com agregação limitada a 288 intervalos.
-- Testes de velocidade manuais ou automáticos pelo `networkQuality` do macOS.
-- Exportação de intervalos, testes e quedas em três arquivos CSV, com proteção contra sobrescrita.
-- Retenção local de 90 dias e interface com cores semânticas em claro e escuro.
+| Recurso | O que oferece |
+|---|---|
+| Conexão atual | Estado da internet e resumo compacto na barra de menus. |
+| Histórico diário | Disponibilidade, quedas, sessões, testes e eventos, com retenção de 90 dias. |
+| Linha do tempo | Visão do dia com agregação limitada a 288 intervalos. |
+| Velocidade | Testes manuais ou automáticos pelo `networkQuality` do macOS. |
+| Exportação | Três arquivos CSV, com proteção contra sobrescrita. |
+| Interface nativa | AppKit, fontes do sistema e cores semânticas em claro e escuro. |
 
 O acesso é verificado aproximadamente a cada 10 segundos, por requisições para Apple e Google. Uma resposta válida confirma acesso. Falhas podem indicar indisponibilidade ou bloqueio desses destinos. A disponibilidade considera apenas o tempo observado. Repouso, pausa e lacunas ficam separados das quedas.
 
