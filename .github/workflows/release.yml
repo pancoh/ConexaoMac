@@ -1,0 +1,88 @@
+name: Testar e publicar Conexão
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: conexao-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validar:
+    runs-on: macos-15
+    timeout-minutes: 20
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Conferir versão
+        id: version
+        shell: bash
+        run: |
+          version=$(tr -d '\r\n' < VERSION)
+          build=$(tr -d '\r\n' < BUILD_NUMBER)
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$build" =~ ^[1-9][0-9]*$ ]]
+          printf 'version=%s\n' "$version" >> "$GITHUB_OUTPUT"
+      - name: Executar testes
+        run: ./test.sh
+      - name: Compilar e verificar assinatura
+        run: ./build.sh
+      - name: Gerar checksum
+        run: shasum -a 256 ConexaoMac.zip > SHA256SUMS.txt
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: conexao-${{ steps.version.outputs.version }}
+          path: |
+            ConexaoMac.zip
+            SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
+
+  publicar:
+    needs: validar
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: conexao-${{ needs.validar.outputs.version }}
+      - name: Verificar pacote
+        run: sha256sum --check SHA256SUMS.txt
+      - name: Publicar versão nova
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          APP_VERSION: ${{ needs.validar.outputs.version }}
+          SOURCE_COMMIT: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="v$APP_VERSION"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "A versão $tag já foi publicada. Aumente VERSION para criar um novo download."
+            exit 0
+          fi
+          cat > release-notes.md <<'NOTES'
+          Aplicativo para Macs Apple Silicon (M1 ou posterior), com macOS 13 ou superior.
+
+          Baixe ConexaoMac.zip, descompacte e arraste Conexão.app para Aplicativos.
+
+          Para atualizar, encerre o Conexão antes de substituir o aplicativo. O histórico local é preservado. A atualização é manual.
+
+          O aplicativo possui assinatura local e ainda não foi notarizado pela Apple. Consulte as instruções de instalação no README do repositório.
+
+          SHA256SUMS.txt permite conferir a integridade do ZIP.
+          NOTES
+          gh release create "$tag" ConexaoMac.zip SHA256SUMS.txt \
+            --target "$SOURCE_COMMIT" --title "Conexão $APP_VERSION" \
+            --notes-file release-notes.md --latest
